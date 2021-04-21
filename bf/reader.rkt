@@ -8,7 +8,7 @@
   ; these tokens are then passed to our parser
   (define parse-tree (parse path (make-tokenizer port)))
   ; create module-datum and insert the parse tree
-  (define module-datum `(module bf-mod "expander.rkt" ,parse-tree))
+  (define module-datum `(module bf-mod bf/expander ,parse-tree))
   ; package code as syntax object
   (datum->syntax #f module-datum))
 
