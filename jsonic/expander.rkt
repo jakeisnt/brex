@@ -1,4 +1,4 @@
-#lang br
+#lang br/quicklang
 
 ;; every library is available from every DSL!
 (require json)
