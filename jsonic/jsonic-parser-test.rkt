@@ -1,14 +1,30 @@
 #lang br
-(require jsonic/parser jsonic/tokenizer brag/support)
 
+(require jsonic/parser
+         jsonic/tokenizer
+         brag/support
+         rackunit)
 
-(parse-to-datum (apply-tokenizer-maker make-tokenizer "hi\n// comment\n@$ 42 $@"))
-
-;; racket here string: multiline label with arbitrary name that will start and end the string
-;; here, '#<<DEREK' declares the delimiter, then EOF is signalled where it is seen later
-(parse-to-datum (apply-tokenizer-maker make-tokenizer #<<DEREK
-"foo"
-// comment
-@$ 42 $@
-DEREK
-))
+(check-equal?
+ (parse-to-datum
+  (apply-tokenizer-maker make-tokenizer "// line commment\n"))
+ '(jsonic-program))
+(check-equal?
+ (parse-to-datum
+  (apply-tokenizer-maker make-tokenizer "@$ 42 $@"))
+ '(jsonic-program (jsonic-sexp " 42 ")))
+(check-equal?
+ (parse-to-datum
+  (apply-tokenizer-maker make-tokenizer "hi"))
+ '(jsonic-program
+   (jsonic-char "h")
+   (jsonic-char "i")))
+(check-equal?
+ (parse-to-datum
+  (apply-tokenizer-maker make-tokenizer
+                         "hi\n// comment\n@$ 42 $@"))
+ '(jsonic-program
+   (jsonic-char "h")
+   (jsonic-char "i")
+   (jsonic-char "\n")
+   (jsonic-sexp " 42 ")))

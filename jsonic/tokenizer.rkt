@@ -1,7 +1,11 @@
 #lang br/quicklang
-(require brag/support)
+(require brag/support racket/contract)
+
+(module+ test (require rackunit))
 
 (define (make-tokenizer port)
+  ;; side effect - turns on line and column counting!
+  (port-count-lines! port)
   ;; must process every token, including eof, where we (prob) terminate
   (define (next-token)
     ;; contains series of branches, each representing lexing rule
@@ -10,11 +14,71 @@
  (from/to "//" "\n") (next-token)]
              [
               ;; everything between these two is valid Racket and should be used as such
- (from/to "@$" "$@") (token 'SEXP-TOK (trim-ends "@$" lexeme "$@"))]
+ (from/to "@$" "$@") (token 'SEXP-TOK (trim-ends "@$" lexeme "$@")
+                            ;; compensate for the trim with +2 (asssume no newlines)
+                            #:position (+ (pos lexeme-start) 2)
+                            #:line (line lexeme-start)
+                            #:column (+ (col lexeme-start) 2)
+                            #:span (- (pos lexeme-end)
+                                      (pos lexeme-start) 4))]
              ;; any other token is JSON; we throw it away?
              ;; no real need to handle eof, as lexer emits eof token for parser eof
-             [any-char (token 'CHAR-TOK lexeme)]))
+             [any-char (token 'CHAR-TOK lexeme
+                              ;; special object syntax to 
+                              ;; tag start position of the lexeme
+                              #:position (pos lexeme-start)
+                              ;; notate line pos
+                              #:line (line lexeme-start)
+                              ;; col
+                              #:column (col lexeme-start)
+                              ;; calc end of the character
+                              #:span (- (pos lexeme-end) (pos lexeme-start)))]))
     (jsonic-lexer port))
     next-token)
 
-(provide make-tokenizer)
+(module+ test
+  (check-equal?
+   (apply-tokenizer-maker make-tokenizer "// comment\n")
+   empty)
+  (check-equal?
+   (apply-tokenizer-maker make-tokenizer "@$ (+ 6 7) $@")
+   ;; now we get source locations so we need to annotate them here!
+   (list (token 'SEXP-TOK " (+ 6 7) "
+                #:position 3
+                #:line 1
+                #:column 2
+                #:span 9)))
+  (check-equal?
+   (apply-tokenizer-maker make-tokenizer "hi")
+   ;; #f s are unused for now
+   (list (token 'CHAR-TOK "h"
+             #:position 1
+             #:line 1
+             #:column 0
+             #:span 1)
+      (token 'CHAR-TOK "i"
+             #:position 2
+             #:line 1
+             #:column 1
+             #:span 1))))
+
+;; we'd already written these things in the repl!
+;; just had to formalize them as code : )
+
+;; (input-port? . -> . procedure?)
+;; define a custom contract recognizer here
+(define (jsonic-token? x)
+  (or (eof-object? x) (token-struct? x)))
+
+;; no inputs needed so no infix
+;; (input-port? . -> . (-> jsonic-token?))
+
+(module+ test
+  (check-true (jsonic-token? eof))
+  (check-true (jsonic-token? (token 'A-TOKEN-STRUCT "hi")))
+  (check-false (jsonic-token? 42)))
+
+;; contracts run at runtime; a necessary performance cost
+(provide
+ (contract-out
+  [make-tokenizer (input-port? . -> . (-> jsonic-token?))]))
