@@ -1,3 +1,3 @@
 { pkgs ? import <nixpkgs> { } }:
 with pkgs;
-mkShell { buildInputs = [ racket ]; }
+mkShell { buildInputs = [ racket rnix-lsp ]; }

@@ -14,12 +14,12 @@
 
 ;; bf-program, literal identifier in code
 (define-macro (bf-program
-         ;; if in all caps, the argumetn is a pattern variable that matches everything
-         ;; otherwise, it matches /literally/ the name of the argument as provided
-         OP-OR-LOOP-ARG
-         ;; the ellipsis is our * qualifier, accepting all of the arguments that follow
-         ;; this also allows us to accept no arguments
-         ...) #'(void OP-OR-LOOP-ARG ...))
+               ;; if in all caps, the argumetn is a pattern variable that matches everything
+               ;; otherwise, it matches /literally/ the name of the argument as provided
+               OP-OR-LOOP-ARG
+               ;; the ellipsis is our * qualifier, accepting all of the arguments that follow
+               ;; this also allows us to accept no arguments
+               ...) #'(void OP-OR-LOOP-ARG ...))
 
 (provide bf-program)
 
